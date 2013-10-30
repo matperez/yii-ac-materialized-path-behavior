@@ -114,6 +114,19 @@ class ActiveRecordMaterializedTreeBehavior extends CBehavior {
 	}
 
 	/**
+	 * @param array|CDbCriteria $addCriteria
+	 * @return array|CActiveRecord[]
+	 */
+	public function getRoots($addCriteria = array()) {
+		/** @var CActiveRecord $model */
+		$model = $this->owner;
+		$criteria = new CDbCriteria();
+		$criteria->compare('path','.');
+		$criteria->mergeWith($addCriteria);
+		return $model->model()->findAll($criteria);
+	}
+
+	/**
 	 * @param CActiveRecord $target
 	 * @param bool $new
 	 * @return CActiveRecord
