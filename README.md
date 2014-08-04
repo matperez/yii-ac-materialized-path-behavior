@@ -32,7 +32,7 @@ yii-ac-materialized-path-behavior
 // Сделать корневым элементом
 $model->move(null);
 
-// Сделать дочерним элементов объекта с id=1
+// Сделать дочерним элементом объекта с id=1
 $target = Item::model()->findByPk(1);
 $model->move($target);
 
