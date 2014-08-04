@@ -18,8 +18,10 @@
  *
  * @author Andrey Golovin <matperez@mail.ru>
  * @version 0.0.1
+ *
+ * @property CActiveRecord|MaterializedPathTree $owner
  */
-class ActiveRecordMaterializedTreeBehavior extends CBehavior {
+class MaterializedPathTree extends CBehavior {
 	/**
 	 * @var int - максимальный уровень вложенности
 	 */
@@ -64,14 +66,14 @@ class ActiveRecordMaterializedTreeBehavior extends CBehavior {
 	 * @return bool - является ли элемент корневым
 	 */
 	public function isRoot() {
-		return !$this->owner->parentId;
+		return !$this->owner->getParentId();
 	}
 
 	/**
 	 * @return bool
 	 */
 	public function isLeaf() {
-		return !$this->owner->hasChildren;
+		return !$this->owner->getHasChildren();
 	}
 
 	/**
@@ -86,7 +88,7 @@ class ActiveRecordMaterializedTreeBehavior extends CBehavior {
 	 * @return bool
 	 */
 	public function getHasChildren() {
-		return !!count($this->owner->children);
+		return !!count($this->owner->getChildren());
 	}
 
 	/**
@@ -94,8 +96,8 @@ class ActiveRecordMaterializedTreeBehavior extends CBehavior {
 	 * @return CActiveRecord
 	 */
 	public function setPosition($position = null) {
-		$path = ($this->owner->parentId) ? $this->parent->path : '.' ;
-		$posFrom = (int) $this->owner->position;
+		$path = ($this->owner->getParentId()) ? $this->getParent()->{$this->pathField} : '.' ;
+		$posFrom = (int) $this->owner->{$this->positionFiled};
 		/** @var CActiveRecord $model */
 		$model = $this->owner;
 		if ($position) {
@@ -110,7 +112,7 @@ class ActiveRecordMaterializedTreeBehavior extends CBehavior {
 				->update($model->tableName(), array(
 					'position' => new CDbExpression('position' . ($lower ? '+' : '-') . 1)
 				), $criteria->condition, $criteria->params);
-			$model->position = $position;
+			$model->{$this->positionFiled} = $position;
 			$model->save();
 		} else {
 			$criteria = new CDbCriteria();
@@ -130,7 +132,18 @@ class ActiveRecordMaterializedTreeBehavior extends CBehavior {
 	 * @return CActiveRecord|null
 	 */
 	public function getParent() {
-		return ($this->owner->parentId) ? $this->owner->model()->findByPk($this->owner->parentId) : null;
+		return ($this->owner->getParentId()) ? $this->owner->model()->findByPk($this->owner->getParentId()) : null;
+	}
+
+	/**
+	 * @return CActiveRecord[]
+	 */
+	public function getParents() {
+		$ids = $this->owner->getParentIds();
+		$criteria = new CDbCriteria();
+		$criteria->addInCondition('t.id', $ids);
+		$parents = $this->owner->findAll($criteria);
+		return $parents;
 	}
 
 	/**
@@ -147,6 +160,7 @@ class ActiveRecordMaterializedTreeBehavior extends CBehavior {
 	}
 
 	/**
+	 * Move current model to $target's children
 	 * @param CActiveRecord $target
 	 * @param bool $new
 	 * @return CActiveRecord
@@ -154,18 +168,19 @@ class ActiveRecordMaterializedTreeBehavior extends CBehavior {
 	public function move(CActiveRecord $target = null, $new = false) {
 		/** @var CActiveRecord $model */
 		$model = $this->owner;
-		if ($target && $target->id == $model->id) {
+		// preventing moving node to them self
+		if ($target && $target->primaryKey == $model->primaryKey) {
 			return $model;
 		}
 		$model->setPosition(null);
-		$children = $model->children;
+		$children = $model->getChildren();
 		if ($target && $target->primaryKey) {
 			if ($target->{$this->levelField} == $this->maxLevel) {
-				$target = $target->parent;
+				$target = $target->getParent();
 			}
 			$model->{$this->levelField} = $target->{$this->levelField} + 1;
 			$model->{$this->pathField}  = $target->{$this->pathField} . $target->primaryKey . '.';
-			$this->{$this->positionFiled} = count($target->children) + 1;
+			$this->{$this->positionFiled} = count($target->getChildren()) + 1;
 			$target->addChild($model);
 		} else {
 			$model->{$this->levelField} = 0;
@@ -246,7 +261,7 @@ class ActiveRecordMaterializedTreeBehavior extends CBehavior {
 	 */
 	public function getChildParentOf(CActiveRecord $model) {
 		foreach ($this->_children as $child) {
-			if (in_array($child->primaryKey, $model->parentIds)) return $child;
+			if (in_array($child->primaryKey, $model->getParentIds())) return $child;
 		}
 		return null;
 	}
@@ -273,8 +288,8 @@ class ActiveRecordMaterializedTreeBehavior extends CBehavior {
 	 * @return array - массив идентификаторов родительских элементов
 	 */
 	public function getParentIds() {
-		$ids = explode($this->pathSeparator, $this->owner->{$this->pathField});
-		array_pop($ids);
+		$ids = explode($this->pathSeparator, trim($this->owner->{$this->pathField}, $this->pathSeparator));
+		//array_pop($ids);
 		foreach ($ids as &$v) {
 			$v = (int) $v;
 		}
@@ -285,7 +300,7 @@ class ActiveRecordMaterializedTreeBehavior extends CBehavior {
 	 * @return mixed - идентификатор непосредственного родителя
 	 */
 	public function getParentId() {
-		$ids = $this->parentIds;
+		$ids = $this->getParentIds();
 		return array_pop($ids);
 	}
 
@@ -296,8 +311,8 @@ class ActiveRecordMaterializedTreeBehavior extends CBehavior {
 	 */
 	public function isParent(CActiveRecord $model, $fullPath = false) {
 		return $fullPath ?
-			in_array($this->owner->primaryKey, $model->parentIds) :
-			$this->owner->primaryKey == $model->parentId;
+			in_array($this->owner->primaryKey, $model->getParentIds()) :
+			$this->owner->primaryKey == $model->getParentId();
 	}
 
 	/**
@@ -313,6 +328,6 @@ class ActiveRecordMaterializedTreeBehavior extends CBehavior {
 	 * @return bool
 	 */
 	public function isSibling(CActiveRecord $model) {
-		return $this->owner->parentId == $model->parentId;
+		return $this->owner->parentId() == $model->getParentId();
 	}
 }
