@@ -17,7 +17,7 @@ yii-ac-materialized-path-behavior
             'class'=>'ext.behaviors.MaterializedPathTree',
             'pathField' => 'path',
             'positionField' => 'position',
-            'levelField' => 'level,
+            'levelField' => 'level',
         ),
     );
  }
