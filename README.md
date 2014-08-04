@@ -50,4 +50,8 @@ $model->getParentIds();
 
 // Получить идентификатор непосредственного родителя
 $model->getParentId();
+
+// Изменение позиции узла
+$model->setPosition(2);
+$model->moveUp();
 ```
