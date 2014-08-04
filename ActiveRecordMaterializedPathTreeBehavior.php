@@ -1,4 +1,24 @@
 <?php
+/**
+ * MaterializedPathTree
+ *
+ * This behavior adds materialized path tree methods to a ActiveRecord model.
+ *
+ * It can be  be attached to a model on its behaviors() method:
+ * <pre>
+ * public function behaviors()
+ * {
+ *     return array(
+ *         'MaterializedPathTree' => array(
+ *             'class'=>'ext.behaviors.MaterializedPathTree',
+ *         ),
+ *     );
+ * }
+ * </pre>
+ *
+ * @author Andrey Golovin <matperez@mail.ru>
+ * @version 0.0.1
+ */
 class ActiveRecordMaterializedTreeBehavior extends CBehavior {
 	/**
 	 * @var int - максимальный уровень вложенности
@@ -134,6 +154,9 @@ class ActiveRecordMaterializedTreeBehavior extends CBehavior {
 	public function move(CActiveRecord $target = null, $new = false) {
 		/** @var CActiveRecord $model */
 		$model = $this->owner;
+		if ($target && $target->id == $model->id) {
+			return $model;
+		}
 		$model->setPosition(null);
 		$children = $model->children;
 		if ($target && $target->primaryKey) {
