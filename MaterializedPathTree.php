@@ -127,6 +127,22 @@ class MaterializedPathTree extends CBehavior {
 		}
 		return $model;
 	}
+	
+	/**
+	 * Move node position up
+	 */
+	public function moveUp() {
+		$this->owner->setPosition($this->owner->{$this->positionFiled} - 1);
+	}
+
+	/**
+	 * Move node position down
+	 */
+	public function moveDown() {
+		$this->owner->setPosition($this->owner->{$this->positionFiled} + 1);
+	}
+
+
 
 	/**
 	 * @return CActiveRecord|null
