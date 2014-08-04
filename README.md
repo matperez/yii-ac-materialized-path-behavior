@@ -9,15 +9,15 @@ yii-ac-materialized-path-behavior
 
 2. Добавить поведение в модель
 
- * <pre>
- * public function behaviors()
- * {
- *     return array(
- *         'MaterializedPathTree' => array(
- *             'class'=>'ext.behaviors.MaterializedPathTree',
- *         ),
- *     );
- * }
- * </pre>
+```php
+ public function behaviors()
+ {
+    return array(
+        'MaterializedPathTree' => array(
+            'class'=>'ext.behaviors.MaterializedPathTree',
+        ),
+    );
+ }
+``` 
 
-Модель должна содержать подходящие поля для хранения параметров path, level, position
+Модель должна содержать подходящие поля для хранения параметров path, level, position.
