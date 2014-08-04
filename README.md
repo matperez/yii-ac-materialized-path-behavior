@@ -21,3 +21,30 @@ yii-ac-materialized-path-behavior
 ``` 
 
 Модель должна содержать подходящие поля для хранения параметров path, level, position.
+
+Использование
+===
+
+```php
+// Сделать корневым элементом
+$model->move(null);
+
+// Сделать дочерним элементов объекта с id=1
+$target = Item::model()->findByPk(1);
+$model->move($target);
+
+// Получить все корневые узлы
+Item::model()->getRoots();
+
+// Получить всех потомков заданного узла
+$model->children;
+foreach($model->children as $child) {
+ var_dump($child->prop);
+}
+
+// Получить идентификаторы родителей
+$model->getParentIds();
+
+// Получить идентификатор непосредственного родителя
+$model->getParentId();
+```
