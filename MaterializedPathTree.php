@@ -106,7 +106,7 @@ class MaterializedPathTree extends CBehavior {
 			$criteria = new CDbCriteria();
 			$criteria
 				->addSearchCondition('path', $path.'%', false)
-				->compare('level', $model->level)
+				->compare('level', $model->{$this->levelField})
 				->addBetweenCondition('position', min($posFrom, $posTo), max($posFrom, $posTo));
 			$model->dbConnection->createCommand()
 				->update($model->tableName(), array(
@@ -118,7 +118,7 @@ class MaterializedPathTree extends CBehavior {
 			$criteria = new CDbCriteria();
 			$criteria
 				->addSearchCondition('path', $path.'%', false)
-				->compare('level', $model->level)
+				->compare('level', $model->{$this->levelField})
 				->compare('position >', $posFrom);
 			$model->dbConnection->createCommand()
 				->update($model->tableName(), array(
@@ -127,9 +127,9 @@ class MaterializedPathTree extends CBehavior {
 		}
 		return $model;
 	}
-	
+
 	/**
-	 * Move node position up
+	 * Mode node position down
 	 */
 	public function moveUp() {
 		$this->owner->setPosition($this->owner->{$this->positionFiled} - 1);
@@ -141,8 +141,6 @@ class MaterializedPathTree extends CBehavior {
 	public function moveDown() {
 		$this->owner->setPosition($this->owner->{$this->positionFiled} + 1);
 	}
-
-
 
 	/**
 	 * @return CActiveRecord|null
@@ -182,7 +180,7 @@ class MaterializedPathTree extends CBehavior {
 	 * @return CActiveRecord
 	 */
 	public function move(CActiveRecord $target = null, $new = false) {
-		/** @var CActiveRecord $model */
+		/** @var CActiveRecord|MaterializedPathTree $model */
 		$model = $this->owner;
 		// preventing moving node to them self
 		if ($target && $target->primaryKey == $model->primaryKey) {
@@ -192,6 +190,7 @@ class MaterializedPathTree extends CBehavior {
 		$children = $model->getChildren();
 		if ($target && $target->primaryKey) {
 			if ($target->{$this->levelField} == $this->maxLevel) {
+				/** @var CActiveRecord|MaterializedPathTree $target */
 				$target = $target->getParent();
 			}
 			$model->{$this->levelField} = $target->{$this->levelField} + 1;
@@ -209,6 +208,7 @@ class MaterializedPathTree extends CBehavior {
 		$model->save();
 		$this->_children = array();
 		foreach ($children as $child) {
+			/** @var CActiveRecord|MaterializedPathTree $child */
 			$child->move($model);
 		}
 		return $model;
@@ -217,7 +217,7 @@ class MaterializedPathTree extends CBehavior {
 	/**
 	 * @param CDbCriteria|array $addCriteria
 	 * @param bool $forceReload
-	 * @return $this
+	 * @return CActiveRecord|MaterializedPathTree
 	 */
 	public function loadTree($addCriteria = array(), $forceReload = false) {
 		if($this->_treeIsLoaded && !$forceReload)
@@ -266,14 +266,15 @@ class MaterializedPathTree extends CBehavior {
 		if ($this->isParent($model)) {
 			$this->addChild($model);
 		} else {
+			/** @var CActiveRecord|MaterializedPathTree $child */
 			$child = $this->getChildParentOf($model);
 			$child && $child->addDescendant($model);
 		}
 	}
 
 	/**
-	 * @param CActiveRecord $model
-	 * @return CActiveRecord|null
+	 * @param CActiveRecord|MaterializedPathTree $model
+	 * @return CActiveRecord|MaterializedPathTree
 	 */
 	public function getChildParentOf(CActiveRecord $model) {
 		foreach ($this->_children as $child) {
@@ -321,7 +322,7 @@ class MaterializedPathTree extends CBehavior {
 	}
 
 	/**
-	 * @param CActiveRecord $model
+	 * @param CActiveRecord|MaterializedPathTree $model
 	 * @param bool $fullPath
 	 * @return bool
 	 */
@@ -332,7 +333,7 @@ class MaterializedPathTree extends CBehavior {
 	}
 
 	/**
-	 * @param CActiveRecord $model
+	 * @param CActiveRecord|MaterializedPathTree $model
 	 * @return bool
 	 */
 	public function isChild(CActiveRecord $model) {
@@ -340,10 +341,10 @@ class MaterializedPathTree extends CBehavior {
 	}
 
 	/**
-	 * @param CActiveRecord $model
+	 * @param CActiveRecord|MaterializedPathTree $model
 	 * @return bool
 	 */
 	public function isSibling(CActiveRecord $model) {
-		return $this->owner->parentId() == $model->getParentId();
+		return $this->owner->getParentId() == $model->getParentId();
 	}
 }
