@@ -129,7 +129,7 @@ class MaterializedPathTree extends CBehavior {
 	}
 
 	/**
-	 * Mode node position down
+	 * Mode node position up
 	 */
 	public function moveUp() {
 		$this->owner->setPosition($this->owner->{$this->positionFiled} - 1);
