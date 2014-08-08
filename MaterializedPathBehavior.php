@@ -1,6 +1,6 @@
 <?php
 /**
- * MaterializedPathTree
+ * MaterializedPathBehavior
  *
  * This behavior adds materialized path tree methods to a ActiveRecord model.
  *
@@ -9,8 +9,8 @@
  * public function behaviors()
  * {
  *     return array(
- *         'MaterializedPathTree' => array(
- *             'class'=>'ext.behaviors.MaterializedPathTree',
+ *         'mp' => array(
+ *             'class'=>'ext.behaviors.materialized-path-behavior.MaterializedPathBehavior',
  *         ),
  *     );
  * }
@@ -21,7 +21,7 @@
  *
  * @property CActiveRecord|MaterializedPathTree $owner
  */
-class MaterializedPathTree extends CBehavior {
+class MaterializedPathBehavior extends CActiveRecordBehavior {
 	/**
 	 * @var int - максимальный уровень вложенности
 	 */
@@ -72,6 +72,13 @@ class MaterializedPathTree extends CBehavior {
 	/**
 	 * @return bool
 	 */
+	public function getIsRoot() {
+		return $this->isRoot();
+	}
+
+	/**
+	 * @return bool
+	 */
 	public function isLeaf() {
 		return !$this->owner->getHasChildren();
 	}
@@ -113,7 +120,8 @@ class MaterializedPathTree extends CBehavior {
 					'position' => new CDbExpression('position' . ($lower ? '+' : '-') . 1)
 				), $criteria->condition, $criteria->params);
 			$model->{$this->positionFiled} = $position;
-			$model->save();
+			// @todo выяснить почему не проходит валидация, при использовании MultilingualBehavior
+			$model->save(false);
 		} else {
 			$criteria = new CDbCriteria();
 			$criteria
@@ -174,12 +182,24 @@ class MaterializedPathTree extends CBehavior {
 	}
 
 	/**
+	 * @param mixed $model
+	 * @return CActiveRecord|mixed
+	 */
+	public function target($model) {
+		if (is_int($model))
+			return $this->owner->model()->findByPk($model);
+		else
+			return $model;
+	}
+
+	/**
 	 * Move current model to $target's children
-	 * @param CActiveRecord $target
+	 * @param CActiveRecord|int $target
 	 * @param bool $new
 	 * @return CActiveRecord
 	 */
-	public function move(CActiveRecord $target = null, $new = false) {
+	public function move($target = null, $new = false) {
+		$target = $this->target($target);
 		/** @var CActiveRecord|MaterializedPathTree $model */
 		$model = $this->owner;
 		// preventing moving node to them self
@@ -205,7 +225,8 @@ class MaterializedPathTree extends CBehavior {
 			));
 			$model->{$this->positionFiled} = $rootsCount ? $rootsCount + ($new ? 0 : 1) : 0;
 		}
-		$model->save();
+		// @todo выяснить почему не проходит валидация, при использовании MultilingualBehavior
+		$model->save(false);
 		$this->_children = array();
 		foreach ($children as $child) {
 			/** @var CActiveRecord|MaterializedPathTree $child */
@@ -347,4 +368,18 @@ class MaterializedPathTree extends CBehavior {
 	public function isSibling(CActiveRecord $model) {
 		return $this->owner->getParentId() == $model->getParentId();
 	}
+
+	/**
+	 * @param CEvent $event
+	 */
+	public function beforeDelete($event) {
+		/** @var CActiveRecord $owner */
+		$owner = $this->owner;
+		if ($owner->hasChildren) {
+			foreach($owner->children as $child) {
+				$child->delete();
+			}
+		}
+	}
+
 }
